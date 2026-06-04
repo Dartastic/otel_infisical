@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_infisical_suppression.dart';
 
@@ -48,42 +47,53 @@ Future<T> tracedInfisical<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_infisical');
   final span = t.startSpan('infisical $operation', kind: SpanKind.client);
   try {
-    span.setStringAttribute('rpc.system', 'infisical');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('rpc.system', 'infisical')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.organization != null) {
-        span.setStringAttribute('infisical.organization', res.organization!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('infisical.organization', res.organization!)
+        ]));
       }
       if (res.project != null) {
-        span.setStringAttribute('infisical.project', res.project!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('infisical.project', res.project!)]));
       }
       if (res.environment != null) {
-        span.setStringAttribute('infisical.environment', res.environment!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('infisical.environment', res.environment!)]));
       }
       if (res.path != null) {
-        span.setStringAttribute('infisical.path', res.path!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('infisical.path', res.path!)]));
       }
       if (res.secretName != null) {
-        span.setStringAttribute('infisical.secret.name', res.secretName!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('infisical.secret.name', res.secretName!)]));
       }
       if (res.secretsCount != null) {
-        span.setIntAttribute('infisical.secrets.count', res.secretsCount!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('infisical.secrets.count', res.secretsCount!)]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('infisical.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('infisical.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'infisical.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'infisical.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
