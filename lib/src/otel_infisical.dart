@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_infisical_suppression.dart';
 
 class InfisicalResult {
+  /// Creates a result.
   const InfisicalResult({
     this.organization,
     this.project,
@@ -29,8 +30,13 @@ class InfisicalResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class InfisicalCallResult<T> {
+  /// Creates a call result.
   const InfisicalCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final InfisicalResult? result;
 }
@@ -38,59 +44,63 @@ class InfisicalCallResult<T> {
 Future<T> tracedInfisical<T>({
   required String operation,
   required Future<InfisicalCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (infisicalInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_infisical');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_infisical');
   final span = t.startSpan('infisical $operation', kind: SpanKind.client);
   try {
-    span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.system', 'infisical')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('rpc.system', 'infisical')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.organization != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('infisical.organization', res.organization!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('infisical.organization', res.organization!)
         ]));
       }
       if (res.project != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('infisical.project', res.project!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('infisical.project', res.project!)]));
       }
       if (res.environment != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('infisical.environment', res.environment!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('infisical.environment', res.environment!)
+        ]));
       }
       if (res.path != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('infisical.path', res.path!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('infisical.path', res.path!)]));
       }
       if (res.secretName != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('infisical.secret.name', res.secretName!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('infisical.secret.name', res.secretName!)
+        ]));
       }
       if (res.secretsCount != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('infisical.secrets.count', res.secretsCount!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('infisical.secrets.count', res.secretsCount!)
+        ]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('infisical.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('infisical.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-            ErrorResource.errorType.key,
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+            ErrorAttributes.errorType.key,
             res.errorCode ?? 'infisical.error',
           )
         ]));
